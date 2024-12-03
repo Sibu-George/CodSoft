@@ -65,36 +65,29 @@ def Train_Fraud_nonFraud_Gender():
     plt.tight_layout()
     plt.show()
 
-# Extracting the transaction year
+
 train_data["trans_year"] = pd.Series(pd.to_datetime(train_data.trans_date_trans_time)).dt.year
-# Finding the birth year of each person
 train_data["dob"] = pd.Series(pd.to_datetime(train_data.dob)).dt.year
 
-# Calculating the age of each person and adding to train_data
 age = pd.Series(train_data.trans_year - train_data.dob)
 train_data["age"] = age
 
-# Dividing individuals into age_groups
 bins = [10, 18, 35, 60, 100]
 labels = ["14-18", "18-35", "35-60", "60+"]
 train_data["age_group"] = pd.cut(train_data['age'], bins=bins, labels=labels, right=True)
 
-# Dropping age, trans_year and dob columns
 train_data.drop(axis=1, columns=["age", "dob", "trans_year", "trans_date_trans_time"], inplace=True)
 
 train_data.head(10)
 
-# Extracting fraudulent and non-fraudulent transactions by age_group
 age_fraud = train_data[train_data.is_fraud == 1].age_group.value_counts().reset_index()
 age_fraud.columns = ["Age group", "Counts"]
 age_not_fraud = train_data[train_data.is_fraud == 0].age_group.value_counts().reset_index()
 age_not_fraud.columns = ["Age group", "Counts"]
 
 def Train_Fraud_nonFraud_Age():
-    # Creating a 1x2 grid for subplots
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     sns.set_theme()
-    # Plotting the number of fraudulent and non-fraudulent transactions per gender
     sns.barplot(x="Age group", y="Counts", data=age_fraud, ax=axes[0])
     axes[0].set_title("Number of fraudulent transactions per age group")
     axes[0].set_xlabel("Age group")
@@ -128,10 +121,8 @@ state_to_region = {
 train_data['Region'] = train_data.state.map(state_to_region)
 
 
-    # Debugging: Print the first few rows to ensure "Region" is created
 print(train_data.head())  # This will show the first 5 rows of the train_data, including the 'Region' column
 
-    # Check if 'Region' column exists
 
 
 def Train_Fraud_nonFraud_Region():
@@ -154,15 +145,12 @@ def Train_Fraud_nonFraud_Region():
             'CA': 'Far West', 'HI': 'Far West', 'AK': 'Far West'
         }
         train_data['Region'] = train_data.state.map(state_to_region)
-            # Creating a 1x2 grid for subplots
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     sns.set_theme()
-            # Extracting fraudulent and non-fraudulent transactions by region
     r_fraud = train_data[train_data.is_fraud == 1].Region.value_counts().reset_index()
     r_fraud.columns = ["Region", "Counts"]
     r_not_fraud = train_data[train_data.is_fraud == 0].Region.value_counts().reset_index()
     r_not_fraud.columns = ["Region", "Counts"]
-            # Plotting the number of fraudulent and non-fraudulent transactions per gender
     sns.barplot(x="Region", y="Counts", data=r_fraud, ax=axes[0])
     axes[0].set_title("Number of fraudulent transactions per region")
     axes[0].set_xlabel("Region")
@@ -185,23 +173,17 @@ train_data.drop(axis=1, columns=["city", "state"], inplace=True)
 features = train_data.drop(axis=1, columns=["is_fraud"], inplace=False)
 label = train_data["is_fraud"]
 
-# Identify non-numeric columns in features
 non_numeric_cols = features.select_dtypes(include=['object', 'category']).columns
 
-# Check and drop high-cardinality columns
 high_cardinality_cols = [col for col in non_numeric_cols if features[col].nunique() > 100]  # Adjust threshold
 print("High-cardinality columns:", high_cardinality_cols)
 features = features.drop(columns=high_cardinality_cols)
 
-# Recalculate non-numeric columns after dropping high-cardinality columns
 non_numeric_cols = features.select_dtypes(include=['object', 'category']).columns
 
-# Apply one-hot encoding to remaining non-numeric columns
 features = pd.get_dummies(features, columns=non_numeric_cols, drop_first=True)
 
-# Ensure all features are numeric
 print("Features preprocessing complete!")
-#logistic Regression
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
@@ -210,18 +192,14 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 log_model = LogisticRegression(penalty="l2", fit_intercept=False, random_state=42, max_iter=1500)
 log_model.fit(features, label)
 
-# Importing test dataset
 test = pd.read_csv(r"C:\Users\Metatron\Downloads\archive (1)\fraudTest.csv")
 
 test.columns
 
-# Dropping redundant columns
 test.drop(axis=1, columns=["Unnamed: 0", "cc_num", "merchant", "first", "last", "street", "city", "zip", "lat", "long", "city_pop", "job", "trans_num", "unix_time", "merch_lat", "merch_long"], inplace=True)
 
-# Adding "Region" column to test data
 test["Region"] = test.state.map(state_to_region)
 
-# Adding age group column 
 test["trans_year"] = pd.Series(pd.to_datetime(test.trans_date_trans_time)).dt.year
 test["dob"] = pd.Series(pd.to_datetime(test.dob)).dt.year
 age = pd.Series(test.trans_year - test.dob)
@@ -230,13 +208,10 @@ bins = [10, 18, 35, 60, 100]
 labels = ["14-18", "18-35", "35-60", "60+"]
 test["age_group"] = pd.cut(test['age'], bins=bins, labels=labels, right=True)
 
-# Dropping all remaining redundant columns
 test.drop(axis=1, columns=["dob", "trans_year", "trans_date_trans_time", "age", "state"], inplace=True)
 
-# One hot encoding
 test = pd.get_dummies(test, columns=["category", "gender", "Region", "age_group"], drop_first=True)
 
-# Extracting features and label from test data
 test_f = test.drop(axis=1, columns=["is_fraud"], inplace=False)
 test_l = test["is_fraud"]
 
@@ -246,9 +221,7 @@ pred = log_model.predict(test_f)
 accuracy = accuracy_score(test_l, pred)
 accuracy
 
-# Adding predictions to dataset
 test["predictions"] = pred
-# Comparing the number of fraudulent transactions in the dataset and the number of such transactions predicted by the model
 actual_fraud = test.is_fraud.value_counts()[1]
 pred_fraud = test[test.is_fraud == 1].predictions.value_counts()[1]
 actual_fraud, pred_fraud
